@@ -1,0 +1,34 @@
+# Web frameworks
+Flask
+Flask-CORS
+
+# Streamlit app
+streamlit
+
+# Environment & config
+python-dotenv
+
+# Google APIs
+google-api-python-client
+google-auth
+google-auth-httplib2
+google-auth-oauthlib
+google-generativeai
+
+# Instagram scraping (instaloader)
+instaloader
+
+# Data handling
+pandas
+numpy
+
+# Excel file support
+openpyxl
+xlsxwriter
+
+# HTTP clients
+requests
+httpx
+
+# Utils
+tqdm
