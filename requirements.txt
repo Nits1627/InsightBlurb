@@ -25,6 +25,8 @@ numpy
 # Excel file support
 openpyxl
 xlsxwriter
+isodate
+
 
 # HTTP clients
 requests
