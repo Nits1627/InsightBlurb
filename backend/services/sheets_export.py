@@ -1,4 +1,4 @@
-import os
+import streamlit as st
 from datetime import datetime
 from google.oauth2.service_account import Credentials
 from googleapiclient.discovery import build
@@ -8,37 +8,30 @@ SCOPES = [
     "https://www.googleapis.com/auth/drive"
 ]
 
-# Use os.environ.get instead of os.getenv for consistency with config.py
-SERVICE_FILE = os.environ.get("GOOGLE_SERVICE_ACCOUNT_FILE")
-YOUR_EMAIL = os.environ.get("YOUR_EMAIL")
-
 def export_to_sheet(data, brand_name="Brand", make_public=True):
     """
-    Export data to a Google Sheet.
+    Export data to a Google Sheet (Streamlit Cloud compatible).
     
     Args:
-        data: List of dictionaries containing data to export
-        brand_name: Name of the brand being analyzed
-        make_public: Whether to make the sheet publicly accessible (default: True)
+        data: List of dictionaries to export
+        brand_name: Name of the brand
+        make_public: Whether to make the sheet public (default: True)
         
     Returns:
         URL of the created Google Sheet
     """
-    # Check if SERVICE_FILE is None and raise a more descriptive error
-    if not SERVICE_FILE:
-        raise ValueError("GOOGLE_SERVICE_ACCOUNT_FILE environment variable is not set or is empty")
-        
-    creds = Credentials.from_service_account_file(SERVICE_FILE, scopes=SCOPES)
+    # --- Credentials from st.secrets, NOT local file ---
+    service_account_info = st.secrets["GOOGLE_SERVICE_ACCOUNT_FILE"]
+    creds = Credentials.from_service_account_info(service_account_info, scopes=SCOPES)
     
-    # Build Sheets and Drive services
     sheets_service = build("sheets", "v4", credentials=creds)
     drive_service = build("drive", "v3", credentials=creds)
 
-    # Generate dynamic sheet title
+    # Dynamic sheet title
     today = datetime.now().strftime("%Y-%m-%d")
     sheet_title = f"Ad Research - {brand_name} - {today}"
 
-    # Step 1: Create the new Google Sheet
+    # 1. Create Google Sheet
     sheet_metadata = {"properties": {"title": sheet_title}}
     sheet = sheets_service.spreadsheets().create(
         body=sheet_metadata,
@@ -46,20 +39,20 @@ def export_to_sheet(data, brand_name="Brand", make_public=True):
     ).execute()
     sheet_id = sheet["spreadsheetId"]
 
-    # Step 2: Write the data
+    # 2. Prepare and write data
     header = ["Sr. No.", "Product Name", "YouTube Link", "Release Date", "Language", "Duration", "Insights"]
-    rows = []
-    for item in data:
-        rows.append([
+    rows = [
+        [
             item.get("sr_no"),
             item.get("title"),
             item.get("url"),
             item.get("published_at"),
             item.get("language", "Unknown"),
             item.get("duration", "Unknown"),
-            item.get("insight")
-        ])
-
+            item.get("insight"),
+        ]
+        for item in data
+    ]
     body = {"values": [header] + rows}
     sheets_service.spreadsheets().values().update(
         spreadsheetId=sheet_id,
@@ -68,7 +61,8 @@ def export_to_sheet(data, brand_name="Brand", make_public=True):
         body=body
     ).execute()
 
-    # Step 3: Share the sheet with your email
+    # 3. Share sheet with YOUR_EMAIL if set
+    YOUR_EMAIL = st.secrets.get("YOUR_EMAIL", None)
     if YOUR_EMAIL:
         permission = {
             "type": "user",
@@ -82,9 +76,8 @@ def export_to_sheet(data, brand_name="Brand", make_public=True):
             sendNotificationEmail=False
         ).execute()
     
-    # Make the sheet public if requested
+    # 4. Make sheet public if requested
     if make_public:
-        # Create a permission for anyone to access the sheet
         public_permission = {
             "type": "anyone",
             "role": "reader"
