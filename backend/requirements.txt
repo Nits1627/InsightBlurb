@@ -1,8 +1,30 @@
+# Core dependencies
 Flask
 Flask-CORS
-google-api-python-client
-google-auth
-google-auth-oauthlib
-google-auth-httplib2
-google-generativeai
-python-dotenv
+streamlit>=1.22.0
+python-dotenv>=1.0.0
+
+# Google API dependencies
+google-api-python-client>=2.86.0
+google-auth>=2.17.3
+google-auth-httplib2>=0.1.0
+google-auth-oauthlib>=1.0.0
+google-generativeai>=0.3.0
+
+# Instagram scraping
+instaloader>=4.9.5
+
+# Data processing
+pandas>=1.5.3
+numpy>=1.24.3
+
+# File handling
+openpyxl>=3.1.2
+xlsxwriter>=3.1.0
+
+# HTTP requests
+requests>=2.31.0
+httpx>=0.24.1
+
+# Other utilities
+tqdm>=4.65.0
