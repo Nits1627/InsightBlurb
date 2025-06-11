@@ -1,15 +1,25 @@
 import os
-import json
-import streamlit as st
+from dotenv import load_dotenv
 
 def load_env():
-    # Load API keys
-    os.environ["GEMINI_API_KEY"] = st.secrets["GEMINI_API_KEY"]
-    os.environ["YOUTUBE_API_KEY"] = st.secrets["YOUTUBE_API_KEY"]
-    os.environ["YOUR_EMAIL"] = st.secrets["YOUR_EMAIL"]
+    load_dotenv()
 
-    # Convert AttrDict to dict before dumping to JSON
-    with open("credentials.json", "w") as f:
-        json.dump(dict(st.secrets["GOOGLE_SERVICE_ACCOUNT_FILE"]), f)
-
-    os.environ["GOOGLE_SERVICE_ACCOUNT_FILE"] = "credentials.json"
+    # Ensure critical environment variables are set
+    # Gemini
+    if not os.environ.get("GEMINI_API_KEY"):
+        print("Warning: GEMINI_API_KEY not set")
+    
+    # YouTube
+    if not os.environ.get("YOUTUBE_API_KEY"):
+        print("Warning: YOUTUBE_API_KEY not set")
+    
+    # Google Sheets
+    if not os.environ.get("GOOGLE_SERVICE_ACCOUNT_FILE"):
+        print("Warning: GOOGLE_SERVICE_ACCOUNT_FILE not set")
+        
+    if not os.environ.get("YOUR_EMAIL"):
+        print("Warning: YOUR_EMAIL not set")
+    
+    # Check if GOOGLE_SHEET_ID is set
+    if not os.environ.get("GOOGLE_SHEET_ID"):
+        print("Warning: GOOGLE_SHEET_ID not set")
