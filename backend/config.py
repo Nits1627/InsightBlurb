@@ -8,8 +8,8 @@ def load_env():
     os.environ["YOUTUBE_API_KEY"] = st.secrets["YOUTUBE_API_KEY"]
     os.environ["YOUR_EMAIL"] = st.secrets["YOUR_EMAIL"]
 
-    # Write service account JSON to a temporary file
+    # Convert AttrDict to dict before dumping to JSON
     with open("credentials.json", "w") as f:
-        json.dump(st.secrets["GOOGLE_SERVICE_ACCOUNT_FILE"], f)
+        json.dump(dict(st.secrets["GOOGLE_SERVICE_ACCOUNT_FILE"]), f)
 
     os.environ["GOOGLE_SERVICE_ACCOUNT_FILE"] = "credentials.json"
