@@ -3,10 +3,14 @@ from datetime import datetime, timedelta
 from googleapiclient.discovery import build
 import isodate
 
-YOUTUBE_API_KEY = os.getenv("YOUTUBE_API_KEY")
-youtube = build("youtube", "v3", developerKey=YOUTUBE_API_KEY)
+def get_youtube_service():
+    YOUTUBE_API_KEY = os.getenv("YOUTUBE_API_KEY")
+    if not YOUTUBE_API_KEY:
+        raise ValueError("YOUTUBE_API_KEY is not set in environment variables.")
+    return build("youtube", "v3", developerKey=YOUTUBE_API_KEY)
 
 def get_channel_id(channel_input):
+    youtube = get_youtube_service()
     if "youtube.com/channel/" in channel_input:
         return channel_input.split("/channel/")[1].split("/")[0]
     elif "youtube.com/@" in channel_input:
@@ -36,6 +40,7 @@ def is_ad_video(title, description):
     return any(kw in text for kw in ad_keywords)
 
 def get_channel_ads(channel_input, years_back=7):
+    youtube = get_youtube_service()
     channel_id = get_channel_id(channel_input)
     years_ago = (datetime.utcnow() - timedelta(days=int(years_back) * 365)).isoformat("T") + "Z"
 
