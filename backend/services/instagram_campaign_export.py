@@ -8,8 +8,9 @@ SCOPES = [
     "https://www.googleapis.com/auth/drive"
 ]
 
-SERVICE_FILE = os.getenv("GOOGLE_SERVICE_ACCOUNT_FILE")
-YOUR_EMAIL = os.getenv("YOUR_EMAIL")
+# Use os.environ.get instead of os.getenv for consistency with config.py
+SERVICE_FILE = os.environ.get("GOOGLE_SERVICE_ACCOUNT_FILE")
+YOUR_EMAIL = os.environ.get("YOUR_EMAIL")
 
 def export_instagram_campaigns_to_sheet(data, account_name="Instagram Account", years_back=1, make_public=True):
     """
@@ -24,6 +25,10 @@ def export_instagram_campaigns_to_sheet(data, account_name="Instagram Account", 
     Returns:
         URL of the created Google Sheet
     """
+    # Check if SERVICE_FILE is None and raise a more descriptive error
+    if not SERVICE_FILE:
+        raise ValueError("GOOGLE_SERVICE_ACCOUNT_FILE environment variable is not set or is empty")
+        
     creds = Credentials.from_service_account_file(SERVICE_FILE, scopes=SCOPES)
     
     # Build Sheets and Drive services
