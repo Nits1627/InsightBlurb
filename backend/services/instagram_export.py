@@ -1,4 +1,4 @@
-import os
+import streamlit as st
 from datetime import datetime
 from google.oauth2.service_account import Credentials
 from googleapiclient.discovery import build
@@ -8,37 +8,27 @@ SCOPES = [
     "https://www.googleapis.com/auth/drive"
 ]
 
-# Use os.environ.get instead of os.getenv for consistency with config.py
-SERVICE_FILE = os.environ.get("GOOGLE_SERVICE_ACCOUNT_FILE")
-YOUR_EMAIL = os.environ.get("YOUR_EMAIL")
-
 def export_instagram_analysis_to_sheet(data, account_name="Instagram Account", make_public=True):
     """
     Export Instagram analysis data to a Google Sheet.
-    
     Args:
         data: Dictionary containing Instagram analysis data
         account_name: Name of the Instagram account being analyzed
         make_public: Whether to make the sheet publicly accessible (default: True)
-        
     Returns:
         URL of the created Google Sheet
     """
-    # Check if SERVICE_FILE is None and raise a more descriptive error
-    if not SERVICE_FILE:
-        raise ValueError("GOOGLE_SERVICE_ACCOUNT_FILE environment variable is not set or is empty")
-        
-    creds = Credentials.from_service_account_file(SERVICE_FILE, scopes=SCOPES)
+    # Credentials from Streamlit secrets (not from local file)
+    service_account_info = st.secrets["GOOGLE_SERVICE_ACCOUNT_FILE"]
+    creds = Credentials.from_service_account_info(service_account_info, scopes=SCOPES)
     
-    # Build Sheets and Drive services
     sheets_service = build("sheets", "v4", credentials=creds)
     drive_service = build("drive", "v3", credentials=creds)
 
-    # Generate dynamic sheet title
     today = datetime.now().strftime("%Y-%m-%d")
     sheet_title = f"Instagram Analysis - {account_name} - {today}"
 
-    # Step 1: Create the new Google Sheet
+    # Create Google Sheet
     sheet_metadata = {"properties": {"title": sheet_title}}
     sheet = sheets_service.spreadsheets().create(
         body=sheet_metadata,
@@ -46,41 +36,33 @@ def export_instagram_analysis_to_sheet(data, account_name="Instagram Account", m
     ).execute()
     sheet_id = sheet["spreadsheetId"]
 
-    # Step 2: Prepare the data
+    # Prepare the data
     rows = []
-    
-    # Add profile analysis
     rows.append(["PROFILE ANALYSIS", ""])
     rows.append(["", ""])
     profile_analysis_lines = data["profile_analysis"].split("\n")
     for line in profile_analysis_lines:
         rows.append([line, ""])
     rows.append(["", ""])
-    
-    # Add content analysis
     rows.append(["CONTENT ANALYSIS", ""])
     rows.append(["", ""])
     content_analysis_lines = data["content_analysis"].split("\n")
     for line in content_analysis_lines:
         rows.append([line, ""])
     rows.append(["", ""])
-    
-    # Add audience analysis
     rows.append(["AUDIENCE ANALYSIS", ""])
     rows.append(["", ""])
     audience_analysis_lines = data["audience_analysis"].split("\n")
     for line in audience_analysis_lines:
         rows.append([line, ""])
     rows.append(["", ""])
-    
-    # Add recommendations
     rows.append(["RECOMMENDATIONS", ""])
     rows.append(["", ""])
     recommendations_lines = data["recommendations"].split("\n")
     for line in recommendations_lines:
         rows.append([line, ""])
 
-    # Write the data to the sheet
+    # Write to the sheet
     body = {"values": rows}
     sheets_service.spreadsheets().values().update(
         spreadsheetId=sheet_id,
@@ -89,9 +71,9 @@ def export_instagram_analysis_to_sheet(data, account_name="Instagram Account", m
         body=body
     ).execute()
     
-    # Step 3: Format the sheet for better readability
+    # Optional formatting (batchUpdate)
     requests = [
-        # Format section headers
+        # Example: Bold the first row (Profile Analysis header)
         {
             "repeatCell": {
                 "range": {
@@ -118,34 +100,7 @@ def export_instagram_analysis_to_sheet(data, account_name="Instagram Account", m
                 "fields": "userEnteredFormat(backgroundColor,textFormat,horizontalAlignment)"
             }
         },
-        # Format content analysis header
-        {
-            "repeatCell": {
-                "range": {
-                    "sheetId": 0,
-                    "startRowIndex": len(profile_analysis_lines) + 3,
-                    "endRowIndex": len(profile_analysis_lines) + 4,
-                    "startColumnIndex": 0,
-                    "endColumnIndex": 1
-                },
-                "cell": {
-                    "userEnteredFormat": {
-                        "backgroundColor": {
-                            "red": 0.8,
-                            "green": 0.8,
-                            "blue": 0.8
-                        },
-                        "horizontalAlignment": "LEFT",
-                        "textFormat": {
-                            "bold": True,
-                            "fontSize": 12
-                        }
-                    }
-                },
-                "fields": "userEnteredFormat(backgroundColor,textFormat,horizontalAlignment)"
-            }
-        },
-        # Set column width
+        # Set column width for better readability
         {
             "updateDimensionProperties": {
                 "range": {
@@ -161,13 +116,13 @@ def export_instagram_analysis_to_sheet(data, account_name="Instagram Account", m
             }
         }
     ]
-    
     sheets_service.spreadsheets().batchUpdate(
         spreadsheetId=sheet_id,
         body={"requests": requests}
     ).execute()
 
-    # Step 4: Share the sheet with your email
+    # Share sheet with your email if present
+    YOUR_EMAIL = st.secrets.get("YOUR_EMAIL", None)
     if YOUR_EMAIL:
         permission = {
             "type": "user",
@@ -180,10 +135,9 @@ def export_instagram_analysis_to_sheet(data, account_name="Instagram Account", m
             fields="id",
             sendNotificationEmail=False
         ).execute()
-    
-    # Make the sheet public if requested
+
+    # Make public if requested
     if make_public:
-        # Create a permission for anyone to access the sheet
         public_permission = {
             "type": "anyone",
             "role": "reader"
