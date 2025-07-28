@@ -5,47 +5,44 @@ from datetime import datetime
 from google.oauth2.service_account import Credentials
 from googleapiclient.discovery import build
 
-# 1) Define the scopes your service‐account needs:
+# 1) Scopes needed for Sheets & Drive
 SCOPES = [
     "https://www.googleapis.com/auth/spreadsheets",
-    "https://www.googleapis.com/auth/drive"
+    "https://www.googleapis.com/auth/drive",
 ]
 
 def export_to_sheet(data, brand_name="Brand", make_public=True):
     """
-    Export a list of dicts `data` into a new Google Sheet.
-    Reads the service account info from st.secrets["google_service_account"].
-    Returns the URL of the created sheet.
+    Export `data` (list of dicts) into a new Google Sheet.
+    Reads service-account info from st.secrets["GOOGLE_SERVICE_ACCOUNT_FILE"].
+    Returns the `https://docs.google.com/spreadsheets/d/...` URL.
     """
 
-    # 2) Load the service account info from Streamlit Secrets (as a TOML table)
-    svc_info = st.secrets["google_service_account"]
+    # 2) Grab the table you defined in Secrets → Key: GOOGLE_SERVICE_ACCOUNT_FILE
+    svc_info = st.secrets["GOOGLE_SERVICE_ACCOUNT_FILE"]
 
-    # 3) Build Credentials directly from that dict:
+    # 3) Build Credentials from that dict
     creds = Credentials.from_service_account_info(svc_info, scopes=SCOPES)
 
-    # 4) Build Drive & Sheets clients:
+    # 4) Build the Drive & Sheets clients
     drive_service  = build("drive",  "v3", credentials=creds)
     sheets_service = build("sheets", "v4", credentials=creds)
 
-    # 5) Create the spreadsheet via Drive API so we can set parents if needed:
+    # 5) Create the spreadsheet via Drive API (so we can set parents if desired)
     today = datetime.now().strftime("%Y-%m-%d")
-    title = f"Ad Research - {brand_name} - {today}"
+    title = f"Ad Research — {brand_name} — {today}"
     file_metadata = {
         "name": title,
         "mimeType": "application/vnd.google-apps.spreadsheet",
-        # Optionally, specify a shared folder ID:
+        # Optionally place it in a shared folder:
         # "parents": ["<YOUR_SHARED_FOLDER_ID>"]
     }
-    created_file = drive_service.files().create(
-        body=file_metadata,
-        fields="id"
-    ).execute()
-    sheet_id = created_file["id"]
+    created = drive_service.files().create(body=file_metadata, fields="id").execute()
+    sheet_id = created["id"]
 
-    # 6) Prepare header and rows:
-    header = ["Sr. No.", "Product Name", "YouTube Link",
-              "Release Date", "Language", "Duration", "Insights"]
+    # 6) Prepare and write your rows
+    header = ["Sr. No.", "Product Name", "YouTube Link", "Release Date",
+              "Language", "Duration", "Insights"]
     rows = [
         [
             item.get("sr_no"),
@@ -58,7 +55,6 @@ def export_to_sheet(data, brand_name="Brand", make_public=True):
         ]
         for item in data
     ]
-
     body = {"values": [header] + rows}
     sheets_service.spreadsheets().values().update(
         spreadsheetId=sheet_id,
@@ -67,16 +63,17 @@ def export_to_sheet(data, brand_name="Brand", make_public=True):
         body=body
     ).execute()
 
-    # 7) Grant your own email edit access (optional)
+    # 7) Grant your personal email edit access (if set)
     your_email = st.secrets.get("YOUR_EMAIL")
     if your_email:
         drive_service.permissions().create(
             fileId=sheet_id,
             body={"type": "user", "role": "writer", "emailAddress": your_email},
-            fields="id"
+            fields="id",
+            sendNotificationEmail=False
         ).execute()
 
-    # 8) Make it publicly viewable if requested
+    # 8) Make it public for anyone to view (if requested)
     if make_public:
         drive_service.permissions().create(
             fileId=sheet_id,
@@ -84,5 +81,4 @@ def export_to_sheet(data, brand_name="Brand", make_public=True):
             fields="id"
         ).execute()
 
-    # 9) Return the URL to the new sheet
     return f"https://docs.google.com/spreadsheets/d/{sheet_id}/edit"
