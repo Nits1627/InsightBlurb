@@ -64,7 +64,7 @@ def export_to_sheet(data, brand_name="Brand", make_public=True):
     ).execute()
 
     # 7) Grant your personal email edit access (if set)
-    your_email = st.secrets.get("YOUR_EMAIL")
+    your_email = st.secrets.get("niteesh@thoughtblurb.in")
     if your_email:
         drive_service.permissions().create(
             fileId=sheet_id,
