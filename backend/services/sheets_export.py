@@ -34,7 +34,7 @@ def export_to_sheet(data, brand_name="Brand", make_public=True):
     file_metadata = {
         "name": title,
         "mimeType": "application/vnd.google-apps.spreadsheet",
-        "parents": ["1KexGWs6evki7WWkA9naipMHvjd8Y49EG"]
+        "parents": ["1kYDB3PqaqNh4dxotv2m0F1J6qw5MqTFk"]
         # "parents": ["<YOUR_SHARED_FOLDER_ID>"]
     }
     created = drive_service.files().create(body=file_metadata, fields="id").execute()
